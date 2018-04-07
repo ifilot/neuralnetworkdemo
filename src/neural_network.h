@@ -34,19 +34,34 @@
 #include <cmath>
 #include <random>
 #include <memory>
+#include <algorithm>
 
 class NeuralNetwork {
 private:
     unsigned int num_layers;
     std::vector<unsigned int> sizes;
+
+    // biases and weights
     std::vector<std::vector<double> > biases;
     std::vector<std::vector<double> > weights;
-    std::vector<std::vector<double> > hidden_values;
+
+    // derivatives
+    std::vector<std::vector<double> > nabla_b;
+    std::vector<std::vector<double> > nabla_w;
+
+    std::vector<std::vector<double> > activations;
+    std::vector<std::vector<double> > z;
 
 public:
     NeuralNetwork(const std::vector<unsigned int>& _sizes);
 
-    std::vector<double>* feed_forward(const std::vector<double>& a);
+    void feed_forward(const std::vector<double>& a);
+
+    inline const std::vector<double>& get_output() const {
+        return this->activations.back();
+    }
+
+    void back_propagation(const std::vector<double>& x, const std::vector<double>& y);
 
     inline void set_biases(const std::vector<std::vector<double> >& _biases) {
         this->biases = _biases;

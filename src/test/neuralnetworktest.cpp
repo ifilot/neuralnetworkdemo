@@ -43,7 +43,7 @@ void NeuralNetworkTest::tearDown(){}
 /**
  * @brief      list of tests
  */
-void NeuralNetworkTest::testNetwork() {
+void NeuralNetworkTest::testFeedForward() {
     static const double tol = 1e-8;
 
     NeuralNetwork nn({3, 3, 3, 3});
@@ -60,14 +60,33 @@ void NeuralNetworkTest::testNetwork() {
     weights.push_back({1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0});
     nn.set_weights(weights);
 
-    auto v = nn.feed_forward({1.0, 2.0, 3.0});
+    nn.feed_forward({1.0, 2.0, 3.0});
+    const auto& v = nn.get_output();
 
-    // {1}: 1   2   3
-    // {2}: 15  34  53
-    // {3}: 242 166 53
-    // {4}: 243 168 56
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(0.880537223790112, v[0], tol);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(0.952462296779165, v[1], tol);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(0.976593542158998,  v[2], tol);
+}
 
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(v->at(0), 243.0, tol);
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(v->at(1), 168.0, tol);
-    CPPUNIT_ASSERT_DOUBLES_EQUAL(v->at(2), 56.0, tol);
+/**
+ * @brief      list of tests
+ */
+void NeuralNetworkTest::testBackPropagation() {
+    static const double tol = 1e-8;
+
+    NeuralNetwork nn({3, 3, 3, 3});
+
+    std::vector<std::vector<double> > biases;
+    biases.push_back({1.0, 2.0, 3.0});
+    biases.push_back({0.0, 0.0, 0.0});
+    biases.push_back({1.0, 2.0, 3.0});
+    nn.set_biases(biases);
+
+    std::vector<std::vector<double> > weights;
+    weights.push_back({1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0});
+    weights.push_back({1.0, 2.0, 3.0, 3.0, 2.0, 1.0, 0.0, 0.0, 1.0});
+    weights.push_back({1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0});
+    nn.set_weights(weights);
+
+    nn.back_propagation({1.0, 2.0, 3.0}, {1.0, 2.0, 3.0});
 }

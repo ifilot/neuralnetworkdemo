@@ -33,14 +33,16 @@
 class NeuralNetworkTest : public CppUnit::TestFixture
 {
   CPPUNIT_TEST_SUITE( NeuralNetworkTest );
-  CPPUNIT_TEST( testNetwork );
+  CPPUNIT_TEST( testFeedForward );
+  CPPUNIT_TEST( testBackPropagation );
   CPPUNIT_TEST_SUITE_END();
 
 public:
   void setUp();
   void tearDown();
 
-  void testNetwork();
+  void testFeedForward();
+  void testBackPropagation();
 };
 
 #endif  // _NEURALNETWORKTEST_H

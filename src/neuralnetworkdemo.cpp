@@ -34,14 +34,15 @@ int main(int argc, char* argv[]) {
 
     NeuralNetwork nn({5, 100, 100, 100, 10});
 
-    auto v = nn.feed_forward({1.0, 2.0, 3.0, 4.0, 5.0});
+    nn.feed_forward({1.0, 2.0, 3.0, 4.0, 5.0});
+    const auto& v = nn.get_output();
 
     std::cout << "Done calculating, outputting results" << std::endl;
 
-    std::cout << v->size() << std::endl;
+    std::cout << v.size() << std::endl;
 
-    for(unsigned int i=0; i<v->size(); i++) {
-        std::cout << v->at(i) << std::endl;
+    for(unsigned int i=0; i<v.size(); i++) {
+        std::cout << v[i] << std::endl;
     }
 
     return 0;
