@@ -74,6 +74,7 @@ set (BOOST_ALL_DYN_LINK OFF)
 find_package(PkgConfig REQUIRED)
 find_package(Boost COMPONENTS regex iostreams filesystem REQUIRED)
 find_package(CPPUNIT REQUIRED) # for unit tests
+find_package(ZLIB REQUIRED) # for unit tests
 pkg_check_modules(TCLAP tclap REQUIRED)
 pkg_check_modules(PNG libpng REQUIRED)
 
@@ -82,6 +83,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}
                     ${CMAKE_BINARY_DIR}
                     ${PNG_INCLUDE_DIR}
                     ${Boost_INCLUDE_DIRS}
+                    ${ZLIB_INCLUDE_DIRS}
                     ${CPPUNIT_INCLUDE_DIR})
 
 # add testing (mandatory for compilation)
@@ -97,7 +99,7 @@ add_definitions(-std=c++14)
 
 # Link libraries
 SET(CMAKE_EXE_LINKER_FLAGS "-Wl,-rpath=\$ORIGIN/lib")
-target_link_libraries(neuralnetworkdemo ${Boost_LIBRARIES} openblas)
+target_link_libraries(neuralnetworkdemo ${Boost_LIBRARIES} ${ZLIB_LIBRARIES} ${PNG_LIBRARIES} openblas)
 
 # add Wno-literal-suffix to suppress warning messages
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS}")

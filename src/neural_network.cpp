@@ -1,5 +1,6 @@
 /************************************************************************************
- *   CMakeLists.txt  --  This file is part of neuralnetworkdemo.                    *
+ *   This file is part of neuralnetworkdemo.                                        *
+ *   https://github.com/ifilot/neuralnetworkdemo                                    *
  *                                                                                  *
  *   MIT License                                                                    *
  *                                                                                  *

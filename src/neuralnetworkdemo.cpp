@@ -1,5 +1,6 @@
 /************************************************************************************
- *   CMakeLists.txt  --  This file is part of neuralnetworkdemo.                    *
+ *   This file is part of neuralnetworkdemo.                                        *
+ *   https://github.com/ifilot/neuralnetworkdemo                                    *
  *                                                                                  *
  *   MIT License                                                                    *
  *                                                                                  *
@@ -27,23 +28,18 @@
 
 #include "config.h"
 #include "neural_network.h"
+#include "mnist_loader.h"
 
 #include <iostream>
 
 int main(int argc, char* argv[]) {
 
-    NeuralNetwork nn({5, 100, 100, 100, 10});
+    MNISTLoader ml;
+    ml.load_testset("../data/t10k-images-idx3-ubyte.gz", "../data/t10k-labels-idx1-ubyte.gz");
+    ml.load_trainingset("../data/train-images-idx3-ubyte.gz", "../data/train-labels-idx1-ubyte.gz");
 
-    nn.feed_forward({1.0, 2.0, 3.0, 4.0, 5.0});
-    const auto& v = nn.get_output();
-
-    std::cout << "Done calculating, outputting results" << std::endl;
-
-    std::cout << v.size() << std::endl;
-
-    for(unsigned int i=0; i<v.size(); i++) {
-        std::cout << v[i] << std::endl;
-    }
+    ml.write_img_to_png(0, "0.png");
+    ml.write_img_to_png(1, "1.png");
 
     return 0;
 }
