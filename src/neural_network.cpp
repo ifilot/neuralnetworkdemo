@@ -79,7 +79,7 @@ void NeuralNetwork::back_propagation(const std::vector<double>& x, const std::ve
     // calculate cost derivative
     #pragma omp parallel for
     for(unsigned int i=0; i<y.size(); i++) {
-        delta[i] = (delta[i] - y[i]) * this->sigmoid_prime(this->z.back()[i]);
+        delta[i] = (this->activations.back()[i] - y[i]) * this->sigmoid_prime(this->z.back()[i]);
         nabla_b.back()[i] = delta[i];
     }
 
@@ -174,7 +174,7 @@ void NeuralNetwork::feed_forward(const std::vector<double>& a) {
                     &this->activations[i-1][0],       // element 0 of x vector
                     1,                                // increment
                     1.0,                              // beta
-                    &this->z[i-1][0],                   // element 0 of y-vector
+                    &this->z[i-1][0],                 // element 0 of y-vector
                     1                                 // increment
                     );
 

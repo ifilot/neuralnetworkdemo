@@ -73,6 +73,7 @@ void NeuralNetworkTest::testFeedForward() {
  */
 void NeuralNetworkTest::testBackPropagation() {
     static const double tol = 1e-8;
+    static const double tol2 = 1e-12;
 
     NeuralNetwork nn({3, 3, 3, 3});
 
@@ -88,5 +89,45 @@ void NeuralNetworkTest::testBackPropagation() {
     weights.push_back({1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0});
     nn.set_weights(weights);
 
-    nn.back_propagation({1.0, 2.0, 3.0}, {1.0, 2.0, 3.0});
+    std::vector<double> in = {1.0, 2.0, 3.0};
+    std::vector<double> out = {1.0, 2.0, 3.0};
+
+    nn.back_propagation(in, out);
+    const auto& v = nn.get_output();
+
+    // check cost function
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(-0.11946278, v[0] - out[0], tol);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(-1.0475377,  v[1] - out[1], tol);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(-2.02340646, v[2] - out[2], tol);
+
+    // check values before sigmoid
+    const auto& z = nn.get_z();
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(1.99752738, z.back()[0], tol);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(2.99752737, z.back()[1], tol);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(3.73105858, z.back()[2], tol);
+
+    // check nabla_b
+    const auto& nabla_b = nn.get_nabla_b();
+
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(-1.16841543e-10, nabla_b[0][0], tol2);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(-5.25739882e-19, nabla_b[0][1], tol2);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(-0.00000000e+00, nabla_b[0][2], tol2);
+
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(-3.09952979e-05, nabla_b[1][0], tol);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(-1.16987323e-04, nabla_b[1][1], tol);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(-9.09374034e-03, nabla_b[1][2], tol);
+
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(-0.01256646, nabla_b.back()[0], tol);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(-0.04743028, nabla_b.back()[1], tol);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(-0.04625223, nabla_b.back()[2], tol);
+
+    // check nabla_w
+    const auto& nabla_w = nn.get_nabla_w();
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(-1.16841543e-10, nabla_w.front()[0], tol2);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(-2.33683086e-10, nabla_w.front()[1], tol2);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(-3.50524629e-10, nabla_w.front()[2], tol2);
+
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(-0.01253539, nabla_w.back()[0], tol);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(-0.01253539, nabla_w.back()[1], tol);
+    CPPUNIT_ASSERT_DOUBLES_EQUAL(-0.00918682, nabla_w.back()[2], tol);
 }

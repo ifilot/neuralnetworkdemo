@@ -71,6 +71,18 @@ public:
         this->weights = _weights;
     }
 
+    inline const auto& get_nabla_w() const {
+        return this->nabla_w;
+    }
+
+    inline const auto& get_nabla_b() const {
+        return this->nabla_b;
+    }
+
+    inline const auto& get_z() const {
+        return this->z;
+    }
+
 private:
     void build_network();
 
