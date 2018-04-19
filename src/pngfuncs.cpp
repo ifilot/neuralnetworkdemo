@@ -28,6 +28,33 @@
 
 #include "pngfuncs.h"
 
+/*
+ * Routines to write a color buffer to a png file
+ *
+ * Color types:
+ * ============
+ * - PNG_COLOR_TYPE_GRAY
+ * - PNG_COLOR_TYPE_GRAY_ALPHA
+ * - PNG_COLOR_TYPE_PALETTE
+ * - PNG_COLOR_TYPE_RGB
+ * - PNG_COLOR_TYPE_RGB_ALPHA
+ *
+ * Bit depths:
+ * ===========
+ * - 8 or 16 bits, except for:
+ *      - PNG_COLOR_TYPE_GRAY: 1, 2, 4, 8, or 16 bits
+ *      - PNG_COLOR_TYPE_PALETTE: 1, 2, 4, 8
+ */
+
+/**
+ * @brief      Writes an image buffer to png.
+ *
+ * @param[in]  filename  The filename
+ * @param[in]  buffer    The buffer
+ * @param[in]  width     The width
+ * @param[in]  height    The height
+ * @param[in]  col       The color type
+ */
 void PNG::write_image_buffer_to_png(const std::string& filename, const std::vector<uint8_t>& buffer, unsigned int width, unsigned int height, unsigned int col) {
     png_structp png_ptr;
     png_infop info_ptr;
@@ -75,6 +102,10 @@ void PNG::write_image_buffer_to_png(const std::string& filename, const std::vect
         std::cerr << "[write_png_file] Error during writing bytes" << std::endl;
     }
 
+    if(!(col == PNG_COLOR_TYPE_GRAY | col == PNG_COLOR_TYPE_RGBA)) {
+        throw std::runtime_error("Unsupported color type requested.");
+    }
+
     png_bytep *row_pointers;
     if(col == PNG_COLOR_TYPE_GRAY) {
         row_pointers = new png_bytep[height];
@@ -116,6 +147,17 @@ void PNG::write_image_buffer_to_png(const std::string& filename, const std::vect
     ofile.close();
 }
 
+/**
+ * @brief      Loads an image buffer from png.
+ *
+ * @param[in]  filename   The filename
+ * @param      buffer     The buffer
+ * @param      width      The width
+ * @param      height     The height
+ * @param      col        The color type
+ * @param      bit_depth  The bit depth
+ *
+ */
 void PNG::load_image_buffer_from_png(const std::string& filename, std::vector<uint8_t>& buffer, png_uint_32* width, png_uint_32* height, int* col, int* bit_depth) {
     png_structp png_ptr;
     png_infop info_ptr;
