@@ -26,20 +26,21 @@
  *                                                                                  *
  ************************************************************************************/
 
-#include "config.h"
-#include "neural_network.h"
-#include "mnist_loader.h"
+#include "dataset.h"
 
-#include <iostream>
+Dataset::Dataset(unsigned int _dataset_size, unsigned int _nr_input_nodes, unsigned int _nr_output_nodes) :
+dataset_size(_dataset_size),
+nr_input_nodes(_nr_input_nodes),
+nr_output_nodes(_nr_output_nodes)
+{
+    this->x.resize(dataset_size, std::vector<double>(this->nr_input_nodes));
+    this->y.resize(dataset_size, std::vector<double>(this->nr_output_nodes));
+}
 
-int main(int argc, char* argv[]) {
+void Dataset::set_input_vector(unsigned int i, const std::vector<double>& vals) {
+    cblas_dcopy(vals.size(), &vals[0], 1, &this->x[i][0], 1);
+}
 
-    MNISTLoader ml;
-    ml.load_testset("../data/t10k-images-idx3-ubyte.gz", "../data/t10k-labels-idx1-ubyte.gz");
-    ml.load_trainingset("../data/train-images-idx3-ubyte.gz", "../data/train-labels-idx1-ubyte.gz");
-
-    auto trainingset = ml.get_trainingset();
-    auto testset = ml.get_testset();
-
-    return 0;
+void Dataset::set_output_vector(unsigned int i, const std::vector<double>& vals) {
+    cblas_dcopy(vals.size(), &vals[0], 1, &this->y[i][0], 1);
 }

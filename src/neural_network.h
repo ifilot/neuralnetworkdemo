@@ -37,6 +37,8 @@
 #include <memory>
 #include <algorithm>
 
+#include "dataset.h"
+
 class NeuralNetwork {
 private:
     unsigned int num_layers;
@@ -58,11 +60,13 @@ public:
 
     void feed_forward(const std::vector<double>& a);
 
+    void back_propagation(const std::vector<double>& x, const std::vector<double>& y);
+
+    void sgd(const Dataset& data, unsigned int epochs, unsigned int mini_batch_size, double eta);
+
     inline const std::vector<double>& get_output() const {
         return this->activations.back();
     }
-
-    void back_propagation(const std::vector<double>& x, const std::vector<double>& y);
 
     inline void set_biases(const std::vector<std::vector<double> >& _biases) {
         this->biases = _biases;

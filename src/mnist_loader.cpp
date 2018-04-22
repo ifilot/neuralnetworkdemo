@@ -107,3 +107,41 @@ void MNISTLoader::write_img_to_png(unsigned int imgid, const std::string& filena
 
     PNG::write_image_buffer_to_png(filename, data, imgsz, imgsz, PNG_COLOR_TYPE_GRAY);
 }
+
+std::shared_ptr<Dataset> MNISTLoader::get_trainingset() const {
+    auto dataset = std::make_shared<Dataset>(this->trainingset_size, 784, 10);
+
+    for(unsigned int i=0; i<this->trainingset_size; i++) {
+        std::vector<double> in(784);
+        std::vector<double> out(10, 0.0);
+
+        for(unsigned int j=0; j<784; j++) {
+            in[j] = (double)this->trainingset[i * 784 + 16 + j] / 255.0f;
+        }
+        out[this->traininglabels[i + 8]] = 1.0;
+
+        dataset->set_input_vector(i, in);
+        dataset->set_output_vector(i, out);
+    }
+
+    return dataset;
+}
+
+std::shared_ptr<Dataset> MNISTLoader::get_testset() const {
+    auto dataset = std::make_shared<Dataset>(this->testset_size, 784, 10);
+
+    for(unsigned int i=0; i<this->testset_size; i++) {
+        std::vector<double> in(784);
+        std::vector<double> out(10, 0.0);
+
+        for(unsigned int j=0; j<784; j++) {
+            in[j] = (double)this->testset[i * 784 + 16 + j] / 255.0f;
+        }
+        out[this->testlabels[i + 8]] = 1.0;
+
+        dataset->set_input_vector(i, in);
+        dataset->set_output_vector(i, out);
+    }
+
+    return dataset;
+}

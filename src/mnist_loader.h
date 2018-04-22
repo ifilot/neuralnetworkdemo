@@ -37,6 +37,7 @@
 #include <byteswap.h>
 
 #include "pngfuncs.h"
+#include "dataset.h"
 
 class MNISTLoader {
 private:
@@ -64,6 +65,10 @@ public:
     void load_testset(const std::string& datafile, const std::string& labelfile);
 
     void write_img_to_png(unsigned int imgid, const std::string& filename);
+
+    std::shared_ptr<Dataset> get_trainingset() const;
+
+    std::shared_ptr<Dataset> get_testset() const;
 
 private:
     void load_file_from_gz(const std::string& filename, std::vector<char>* rep);

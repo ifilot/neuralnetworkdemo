@@ -68,6 +68,45 @@ void NeuralNetwork::build_network() {
     }
 }
 
+void NeuralNetwork::feed_forward(const std::vector<double>& a) {
+    // copy input vector to activations
+    cblas_dcopy(this->biases.front().size(),
+                &a[0],
+                1,
+                &this->activations.front()[0],
+                1
+                );
+
+    for(unsigned int i=1; i<this->activations.size(); i++) {
+        // copy bias vector
+        cblas_dcopy(this->biases[i-1].size(),
+                    &this->biases[i-1][0],
+                    1,
+                    &this->z[i-1][0],
+                    1
+                    );
+
+        cblas_dgemv(CblasRowMajor,
+                    CblasNoTrans,
+                    this->activations[i].size(),      // number of rows of matrix
+                    this->activations[i-1].size(),    // number of columns of matrix
+                    1.0,                              // alpha value
+                    &this->weights[i-1][0],           // element 0 of matrix,
+                    this->activations[i-1].size(),    // leading dimension
+                    &this->activations[i-1][0],       // element 0 of x vector
+                    1,                                // increment
+                    1.0,                              // beta
+                    &this->z[i-1][0],                 // element 0 of y-vector
+                    1                                 // increment
+                    );
+
+        #pragma omp parallel for
+        for(unsigned int j=0; j<this->activations[i].size(); j++) {
+            this->activations[i][j] = this->sigmoid(this->z[i-1][j]);
+        }
+    }
+}
+
 void NeuralNetwork::back_propagation(const std::vector<double>& x, const std::vector<double>& y) {
     // perform feed forward operation (store results in activations)
     this->feed_forward(x);
@@ -147,43 +186,14 @@ void NeuralNetwork::back_propagation(const std::vector<double>& x, const std::ve
     }
 }
 
-void NeuralNetwork::feed_forward(const std::vector<double>& a) {
-    // copy input vector to activations
-    cblas_dcopy(this->biases.front().size(),
-                &a[0],
-                1,
-                &this->activations.front()[0],
-                1
-                );
-
-    for(unsigned int i=1; i<this->activations.size(); i++) {
-        // copy bias vector
-        cblas_dcopy(this->biases[i-1].size(),
-                    &this->biases[i-1][0],
-                    1,
-                    &this->z[i-1][0],
-                    1
-                    );
-
-        cblas_dgemv(CblasRowMajor,
-                    CblasNoTrans,
-                    this->activations[i].size(),      // number of rows of matrix
-                    this->activations[i-1].size(),    // number of columns of matrix
-                    1.0,                              // alpha value
-                    &this->weights[i-1][0],           // element 0 of matrix,
-                    this->activations[i-1].size(),    // leading dimension
-                    &this->activations[i-1][0],       // element 0 of x vector
-                    1,                                // increment
-                    1.0,                              // beta
-                    &this->z[i-1][0],                 // element 0 of y-vector
-                    1                                 // increment
-                    );
-
-        #pragma omp parallel for
-        for(unsigned int j=0; j<this->activations[i].size(); j++) {
-            this->activations[i][j] = this->sigmoid(this->z[i-1][j]);
-        }
+void NeuralNetwork::sgd(const Dataset& data, unsigned int epochs, unsigned int mini_batch_size, double eta) {
+    // randomly build training set
+    std::vector<unsigned int> lbs(data.size());
+    for(unsigned int i=0; i<data.size(); i++) {
+        lbs[i] = i;
     }
+    auto rng = std::default_random_engine {};
+    std::shuffle(std::begin(lbs), std::end(lbs), rng);
 }
 
 double NeuralNetwork::sigmoid(double z) {

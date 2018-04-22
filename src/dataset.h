@@ -26,20 +26,34 @@
  *                                                                                  *
  ************************************************************************************/
 
-#include "config.h"
-#include "neural_network.h"
-#include "mnist_loader.h"
+#ifndef _DATASET_H
+#define _DATASET_H
 
-#include <iostream>
+#include <vector>
+#include <openblas/cblas.h>
 
-int main(int argc, char* argv[]) {
+class Dataset {
+private:
+    std::vector<std::vector<double>> x;     // input values
+    std::vector<std::vector<double>> y;     // expected output
 
-    MNISTLoader ml;
-    ml.load_testset("../data/t10k-images-idx3-ubyte.gz", "../data/t10k-labels-idx1-ubyte.gz");
-    ml.load_trainingset("../data/train-images-idx3-ubyte.gz", "../data/train-labels-idx1-ubyte.gz");
+    unsigned int dataset_size;
+    unsigned int nr_input_nodes;
+    unsigned int nr_output_nodes;
 
-    auto trainingset = ml.get_trainingset();
-    auto testset = ml.get_testset();
+public:
+    Dataset(unsigned int _dataset_size, unsigned int _nr_input_nodes, unsigned int _nr_output_nodes);
 
-    return 0;
-}
+    inline unsigned int size() const {
+        return this->dataset_size;
+    }
+
+    void set_input_vector(unsigned int i, const std::vector<double>& vals);
+
+    void set_output_vector(unsigned int i, const std::vector<double>& vals);
+
+private:
+
+};
+
+#endif // DATASET_H
