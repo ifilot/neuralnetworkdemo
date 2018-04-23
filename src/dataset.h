@@ -52,6 +52,14 @@ public:
 
     void set_output_vector(unsigned int i, const std::vector<double>& vals);
 
+    inline const std::vector<double>& get_input_vector(unsigned int i) const {
+        return this->x[i];
+    }
+
+    inline const std::vector<double>& get_output_vector(unsigned int i) const {
+        return this->y[i];
+    }
+
 private:
 
 };

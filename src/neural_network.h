@@ -62,7 +62,7 @@ public:
 
     void back_propagation(const std::vector<double>& x, const std::vector<double>& y);
 
-    void sgd(const Dataset& data, unsigned int epochs, unsigned int mini_batch_size, double eta);
+    void sgd(const std::shared_ptr<Dataset>& dataset, const std::shared_ptr<Dataset>& testset, unsigned int epochs, unsigned int mini_batch_size, double eta);
 
     inline const std::vector<double>& get_output() const {
         return this->activations.back();
@@ -94,6 +94,14 @@ private:
     double sigmoid(double z);
 
     double sigmoid_prime(double z);
+
+    void update_mini_batch(const std::shared_ptr<Dataset>& dataset, const std::vector<unsigned int>& batches, unsigned int start, unsigned int batch_size, double eta);
+
+    void copy_nablas(std::vector<std::vector<double> >& nabla_b_sum, std::vector<std::vector<double> >& nabla_w_sum);
+
+    void correct_network(std::vector<std::vector<double> >& nabla_b_sum, std::vector<std::vector<double> >& nabla_w_sum, unsigned int size, double eta);
+
+    unsigned int evaluate(const std::shared_ptr<Dataset>& testset);
 };
 
 #endif // _NEURAL_NETWORK_H

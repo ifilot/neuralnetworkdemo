@@ -41,5 +41,8 @@ int main(int argc, char* argv[]) {
     auto trainingset = ml.get_trainingset();
     auto testset = ml.get_testset();
 
+    NeuralNetwork nn({784,30,10});
+    nn.sgd(trainingset, testset, 10, 10, 3.0);
+
     return 0;
 }

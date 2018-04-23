@@ -70,7 +70,7 @@ void NeuralNetwork::build_network() {
 
 void NeuralNetwork::feed_forward(const std::vector<double>& a) {
     // copy input vector to activations
-    cblas_dcopy(this->biases.front().size(),
+    cblas_dcopy(a.size(),
                 &a[0],
                 1,
                 &this->activations.front()[0],
@@ -186,14 +186,44 @@ void NeuralNetwork::back_propagation(const std::vector<double>& x, const std::ve
     }
 }
 
-void NeuralNetwork::sgd(const Dataset& data, unsigned int epochs, unsigned int mini_batch_size, double eta) {
+void NeuralNetwork::sgd(const std::shared_ptr<Dataset>& trainingset,
+                        const std::shared_ptr<Dataset>& testset,
+                        unsigned int epochs,
+                        unsigned int mini_batch_size,
+                        double eta) {
     // randomly build training set
-    std::vector<unsigned int> lbs(data.size());
-    for(unsigned int i=0; i<data.size(); i++) {
-        lbs[i] = i;
+    std::vector<unsigned int> batches(trainingset->size());
+    for(unsigned int i=0; i<trainingset->size(); i++) {
+        batches[i] = i;
     }
     auto rng = std::default_random_engine {};
-    std::shuffle(std::begin(lbs), std::end(lbs), rng);
+    std::shuffle(std::begin(batches), std::end(batches), rng);
+
+    for(unsigned int i=0; i<trainingset->size(); i+= mini_batch_size) {
+        this->update_mini_batch(trainingset, batches, i, mini_batch_size, eta);
+
+        if(i % 100 == 0) {
+            std::cout << i << "\t" << this->evaluate(testset) << std::endl;
+        }
+    }
+}
+
+void NeuralNetwork::update_mini_batch(const std::shared_ptr<Dataset>& trainingset, const std::vector<unsigned int>& batches, unsigned int start, unsigned int batch_size, double eta) {
+    std::vector<std::vector<double>> nabla_b_sum;
+    std::vector<std::vector<double>> nabla_w_sum;
+
+    // construct bias vectors
+    for(unsigned int i=1; i<this->sizes.size(); i++) {
+        nabla_b_sum.emplace_back(this->sizes[i], 0.0);
+        nabla_w_sum.emplace_back(this->sizes[i-1] * this->sizes[i], 0.0);
+    }
+
+    for(unsigned int i=start; i<(start + batch_size); i++) {
+        this->back_propagation(trainingset->get_input_vector(i), trainingset->get_output_vector(i));
+        this->copy_nablas(nabla_b_sum, nabla_w_sum);
+    }
+
+    this->correct_network(nabla_b_sum, nabla_w_sum, batch_size, eta);
 }
 
 double NeuralNetwork::sigmoid(double z) {
@@ -202,4 +232,70 @@ double NeuralNetwork::sigmoid(double z) {
 
 double NeuralNetwork::sigmoid_prime(double z) {
     return this->sigmoid(z) * (1.0 - this->sigmoid(z));
+}
+
+void NeuralNetwork::copy_nablas(std::vector<std::vector<double> >& nabla_b_sum, std::vector<std::vector<double> >& nabla_w_sum) {
+    for(unsigned int i=0; i<nabla_b_sum.size(); i++) {
+        #pragma omp parallel for
+        for(unsigned int j=0; j<nabla_b_sum[i].size(); j++) {
+            nabla_b_sum[i][j] += nabla_b[i][j];
+        }
+    }
+
+    for(unsigned int i=0; i<nabla_w_sum.size(); i++) {
+        #pragma omp parallel for
+        for(unsigned int j=0; j<nabla_w_sum[i].size(); j++) {
+            nabla_w_sum[i][j] += nabla_w[i][j];
+        }
+    }
+}
+
+void NeuralNetwork::correct_network(std::vector<std::vector<double> >& nabla_b_sum, std::vector<std::vector<double> >& nabla_w_sum, unsigned int size, double eta) {
+    const double factor = eta / (double)size;
+
+    for(unsigned int i=0; i<nabla_b_sum.size(); i++) {
+        #pragma omp parallel for
+        for(unsigned int j=0; j<nabla_b_sum[i].size(); j++) {
+            this->biases[i][j] -= factor * nabla_b_sum[i][j];
+        }
+    }
+
+    for(unsigned int i=0; i<nabla_w_sum.size(); i++) {
+        #pragma omp parallel for
+        for(unsigned int j=0; j<nabla_w_sum[i].size(); j++) {
+            this->weights[i][j] -= factor * nabla_w_sum[i][j];
+        }
+    }
+}
+
+unsigned int NeuralNetwork::evaluate(const std::shared_ptr<Dataset>& testset) {
+    unsigned int hits = 0;
+
+    for(unsigned int i=0; i<testset->size() / 100; i++) {
+        this->feed_forward(testset->get_input_vector(i));
+
+        auto vf = this->activations.front();
+        auto vb = this->activations.back();
+        // for(unsigned int j=0; j<vf.size(); j++) {
+        //     std::cout << vf[j] << "\t";
+        // }
+        // std::cout << std::endl;
+
+        // auto t2 = testset->get_input_vector(i);
+        // for(unsigned int j=0; j<t2.size(); j++) {
+        //     std::cout << t2[j] << "\t";
+        // }
+        // std::cout << std::endl;
+
+        for(unsigned int j=0; j<vb.size(); j++) {
+            std::cout << vb[j] << "\t";
+        }
+        std::cout << std::endl;
+
+        if(testset->get_output_vector(i)[*std::max_element(this->activations.back().begin(), this->activations.back().end())] == 1) {
+            hits++;
+        }
+    }
+
+    return hits;
 }
