@@ -38,6 +38,7 @@ void NeuralNetwork::build_network() {
     // construct random number generator
     std::uniform_real_distribution<double> unif(-1.0, 1.0);
     std::default_random_engine re;
+    re.seed(std::chrono::system_clock::now().time_since_epoch().count());
 
     // construct bias vectors
     for(unsigned int i=1; i<this->sizes.size(); i++) {
@@ -191,20 +192,26 @@ void NeuralNetwork::sgd(const std::shared_ptr<Dataset>& trainingset,
                         unsigned int epochs,
                         unsigned int mini_batch_size,
                         double eta) {
-    // randomly build training set
-    std::vector<unsigned int> batches(trainingset->size());
-    for(unsigned int i=0; i<trainingset->size(); i++) {
-        batches[i] = i;
-    }
-    auto rng = std::default_random_engine {};
-    std::shuffle(std::begin(batches), std::end(batches), rng);
 
-    for(unsigned int i=0; i<trainingset->size(); i+= mini_batch_size) {
-        this->update_mini_batch(trainingset, batches, i, mini_batch_size, eta);
+    for(unsigned int j=0; j<epochs; j++) {
+        auto start = std::chrono::system_clock::now();
 
-        if(i % 100 == 0) {
-            std::cout << i << "\t" << this->evaluate(testset) << std::endl;
+        std::vector<unsigned int> batches(trainingset->size());
+        for(unsigned int i=0; i<trainingset->size(); i++) {
+            batches[i] = i;
         }
+
+        auto rng = std::default_random_engine {};
+        std::shuffle(std::begin(batches), std::end(batches), rng);
+
+        for(unsigned int i=0; i<trainingset->size(); i+= mini_batch_size) {
+            this->update_mini_batch(trainingset, batches, i, mini_batch_size, eta);
+        }
+
+        auto end = std::chrono::system_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+        std::cout << (boost::format("%4i | %i / %i | %f sec.") % (j+1) % this->evaluate(testset) % testset->size() % elapsed.count()).str() << std::endl;
     }
 }
 
@@ -250,8 +257,8 @@ void NeuralNetwork::copy_nablas(std::vector<std::vector<double> >& nabla_b_sum, 
     }
 }
 
-void NeuralNetwork::correct_network(std::vector<std::vector<double> >& nabla_b_sum, std::vector<std::vector<double> >& nabla_w_sum, unsigned int size, double eta) {
-    const double factor = eta / (double)size;
+void NeuralNetwork::correct_network(const std::vector<std::vector<double> >& nabla_b_sum, const std::vector<std::vector<double> >& nabla_w_sum, unsigned int batch_size, double eta) {
+    const double factor = eta / (double)batch_size;
 
     for(unsigned int i=0; i<nabla_b_sum.size(); i++) {
         #pragma omp parallel for
@@ -271,28 +278,16 @@ void NeuralNetwork::correct_network(std::vector<std::vector<double> >& nabla_b_s
 unsigned int NeuralNetwork::evaluate(const std::shared_ptr<Dataset>& testset) {
     unsigned int hits = 0;
 
-    for(unsigned int i=0; i<testset->size() / 100; i++) {
+    for(unsigned int i=0; i<testset->size(); i++) {
         this->feed_forward(testset->get_input_vector(i));
 
         auto vf = this->activations.front();
         auto vb = this->activations.back();
-        // for(unsigned int j=0; j<vf.size(); j++) {
-        //     std::cout << vf[j] << "\t";
-        // }
-        // std::cout << std::endl;
 
-        // auto t2 = testset->get_input_vector(i);
-        // for(unsigned int j=0; j<t2.size(); j++) {
-        //     std::cout << t2[j] << "\t";
-        // }
-        // std::cout << std::endl;
+        auto max_el = std::max_element(this->activations.back().begin(), this->activations.back().end());
+        unsigned int idx = std::distance(this->activations.back().begin(), max_el);
 
-        for(unsigned int j=0; j<vb.size(); j++) {
-            std::cout << vb[j] << "\t";
-        }
-        std::cout << std::endl;
-
-        if(testset->get_output_vector(i)[*std::max_element(this->activations.back().begin(), this->activations.back().end())] == 1) {
+        if(testset->get_output_vector(i)[idx] == 1) {
             hits++;
         }
     }

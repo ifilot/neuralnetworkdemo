@@ -36,6 +36,8 @@
 #include <random>
 #include <memory>
 #include <algorithm>
+#include <chrono>
+#include <boost/format.hpp>
 
 #include "dataset.h"
 
@@ -88,6 +90,8 @@ public:
         return this->z;
     }
 
+    unsigned int evaluate(const std::shared_ptr<Dataset>& testset);
+
 private:
     void build_network();
 
@@ -99,9 +103,7 @@ private:
 
     void copy_nablas(std::vector<std::vector<double> >& nabla_b_sum, std::vector<std::vector<double> >& nabla_w_sum);
 
-    void correct_network(std::vector<std::vector<double> >& nabla_b_sum, std::vector<std::vector<double> >& nabla_w_sum, unsigned int size, double eta);
-
-    unsigned int evaluate(const std::shared_ptr<Dataset>& testset);
+    void correct_network(const std::vector<std::vector<double> >& nabla_b_sum, const std::vector<std::vector<double> >& nabla_w_sum, unsigned int batch_size, double eta);
 };
 
 #endif // _NEURAL_NETWORK_H

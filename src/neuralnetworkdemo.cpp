@@ -31,8 +31,15 @@
 #include "mnist_loader.h"
 
 #include <iostream>
+#include <omp.h>
+#include <chrono>
+#include <boost/format.hpp>
 
 int main(int argc, char* argv[]) {
+
+    omp_set_num_threads(1);
+
+    auto start = std::chrono::system_clock::now();
 
     MNISTLoader ml;
     ml.load_testset("../data/t10k-images-idx3-ubyte.gz", "../data/t10k-labels-idx1-ubyte.gz");
@@ -42,7 +49,13 @@ int main(int argc, char* argv[]) {
     auto testset = ml.get_testset();
 
     NeuralNetwork nn({784,30,10});
-    nn.sgd(trainingset, testset, 10, 10, 3.0);
+
+    nn.sgd(trainingset, testset, 30, 10, 3.0);
+
+    auto end = std::chrono::system_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+    std::cout << boost::format("Total elapsed time: %f ms\n") % elapsed.count();
+    std::cout << "--------------------------------------------------------------" << std::endl;
 
     return 0;
 }

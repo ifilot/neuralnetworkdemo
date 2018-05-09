@@ -116,7 +116,7 @@ std::shared_ptr<Dataset> MNISTLoader::get_trainingset() const {
         std::vector<double> out(10, 0.0);
 
         for(unsigned int j=0; j<784; j++) {
-            in[j] = (double)this->trainingset[i * 784 + 16 + j] / 255.0;
+            in[j] = (double)(uint8_t)this->trainingset[i * 784 + 16 + j] / 255.0;
         }
         out[this->traininglabels[i + 8]] = 1.0;
 
@@ -135,7 +135,7 @@ std::shared_ptr<Dataset> MNISTLoader::get_testset() const {
         std::vector<double> out(10, 0.0);
 
         for(unsigned int j=0; j<784; j++) {
-            in[j] = (double)this->testset[i * 784 + 16 + j] / 255.0f;
+            in[j] = (double)(uint8_t)this->testset[i * 784 + 16 + j] / 255.0f;
         }
         out[this->testlabels[i + 8]] = 1.0;
 
