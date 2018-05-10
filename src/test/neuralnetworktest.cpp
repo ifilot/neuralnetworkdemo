@@ -47,7 +47,7 @@ void NeuralNetworkTest::tearDown(){}
 void NeuralNetworkTest::testFeedForward() {
     static const double tol = 1e-8;
 
-    NeuralNetwork nn({3, 3, 3, 3});
+    NeuralNetwork nn(std::vector<uint32_t>({3, 3, 3, 3}));
 
     std::vector<std::vector<double> > biases;
     biases.push_back({1.0, 2.0, 3.0});
@@ -76,7 +76,7 @@ void NeuralNetworkTest::testBackPropagation() {
     static const double tol = 1e-8;
     static const double tol2 = 1e-12;
 
-    NeuralNetwork nn({3, 3, 3, 3});
+    NeuralNetwork nn(std::vector<uint32_t>({3, 3, 3, 3}));
 
     std::vector<std::vector<double> > biases;
     biases.push_back({1.0, 2.0, 3.0});

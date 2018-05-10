@@ -48,9 +48,12 @@ int main(int argc, char* argv[]) {
     auto trainingset = ml.get_trainingset();
     auto testset = ml.get_testset();
 
-    NeuralNetwork nn({784,30,10});
+    //NeuralNetwork nn({784,30,10});
+    NeuralNetwork nn("test.net");
 
-    nn.sgd(trainingset, testset, 30, 10, 3.0);
+    nn.sgd(trainingset, testset, 10, 10, 3.0);
+
+    nn.save_network("test.net");
 
     auto end = std::chrono::system_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);

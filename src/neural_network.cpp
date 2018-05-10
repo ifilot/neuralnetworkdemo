@@ -28,47 +28,33 @@
 
 #include "neural_network.h"
 
-NeuralNetwork::NeuralNetwork(const std::vector<unsigned int>& _sizes) :
+/**
+ * @brief      Constructs a neural network
+ *
+ * @param[in]  _sizes  vector holding layer sizes
+ */
+NeuralNetwork::NeuralNetwork(const std::vector<uint32_t>& _sizes) :
 sizes(_sizes) {
     this->num_layers = this->sizes.size();
-    this->build_network();
+    this->construct_bias_and_weight_vectors();
+    this->construct_activation_vectors();
 }
 
-void NeuralNetwork::build_network() {
-    // construct random number generator
-    std::uniform_real_distribution<double> unif(-1.0, 1.0);
-    std::default_random_engine re;
-    re.seed(std::chrono::system_clock::now().time_since_epoch().count());
-
-    // construct bias vectors
-    for(unsigned int i=1; i<this->sizes.size(); i++) {
-        this->biases.emplace_back(this->sizes[i]);
-        this->nabla_b.emplace_back(this->sizes[i]);
-        for(unsigned int j=0; j<this->sizes[i]; j++) {
-            this->biases.back()[j] = unif(re);
-        }
-    }
-
-    // construct weight matrices
-    for(unsigned int i=1; i<this->sizes.size(); i++) {
-        this->weights.emplace_back(this->sizes[i-1] * this->sizes[i], 0.0);
-        this->nabla_w.emplace_back(this->sizes[i-1] * this->sizes[i], 0.0);
-        for(unsigned int j=0; j<this->weights.back().size(); j++) {
-            this->weights.back()[j] = unif(re);
-        }
-    }
-
-    // construct activations vectors
-    for(unsigned int i=0; i<this->sizes.size(); i++) {
-        this->activations.emplace_back(this->sizes[i]);
-    }
-
-    // construct z vectors
-    for(unsigned int i=1; i<this->sizes.size(); i++) {
-        this->z.emplace_back(this->sizes[i]);
-    }
+/**
+ * @brief      Construct a neural network
+ *
+ * @param[in]  filename  .net file
+ */
+NeuralNetwork::NeuralNetwork(const std::string& filename) {
+    this->load_network(filename);
+    this->construct_activation_vectors();
 }
 
+/**
+ * @brief      Perform feed forward
+ *
+ * @param[in]  a     input vector
+ */
 void NeuralNetwork::feed_forward(const std::vector<double>& a) {
     // copy input vector to activations
     cblas_dcopy(a.size(),
@@ -108,6 +94,12 @@ void NeuralNetwork::feed_forward(const std::vector<double>& a) {
     }
 }
 
+/**
+ * @brief      Perform back propagation
+ *
+ * @param[in]  x     input vector
+ * @param[in]  y     expected output
+ */
 void NeuralNetwork::back_propagation(const std::vector<double>& x, const std::vector<double>& y) {
     // perform feed forward operation (store results in activations)
     this->feed_forward(x);
@@ -187,6 +179,15 @@ void NeuralNetwork::back_propagation(const std::vector<double>& x, const std::ve
     }
 }
 
+/**
+ * @brief      Perform stochastic gradient descent
+ *
+ * @param[in]  dataset          training dataset
+ * @param[in]  testset          test dataset
+ * @param[in]  epochs           number of epochs
+ * @param[in]  mini_batch_size  batch size
+ * @param[in]  eta              learning rate
+ */
 void NeuralNetwork::sgd(const std::shared_ptr<Dataset>& trainingset,
                         const std::shared_ptr<Dataset>& testset,
                         unsigned int epochs,
@@ -215,66 +216,82 @@ void NeuralNetwork::sgd(const std::shared_ptr<Dataset>& trainingset,
     }
 }
 
-void NeuralNetwork::update_mini_batch(const std::shared_ptr<Dataset>& trainingset, const std::vector<unsigned int>& batches, unsigned int start, unsigned int batch_size, double eta) {
-    std::vector<std::vector<double>> nabla_b_sum;
-    std::vector<std::vector<double>> nabla_w_sum;
+/**
+ * @brief      save network to file
+ *
+ * @param[in]  filename  The filename
+ */
+void NeuralNetwork::save_network(const std::string& filename) {
+    // open file
+    std::ofstream out(filename, std::ios::out | std::ios::binary);
 
-    // construct bias vectors
-    for(unsigned int i=1; i<this->sizes.size(); i++) {
-        nabla_b_sum.emplace_back(this->sizes[i], 0.0);
-        nabla_w_sum.emplace_back(this->sizes[i-1] * this->sizes[i], 0.0);
+    // store sizes
+    out.write((char*)&this->num_layers, sizeof(uint32_t));
+    for(unsigned int i=0; i<this->sizes.size(); i++) {
+        out.write((char*)&this->sizes[i], sizeof(uint32_t));
     }
 
-    for(unsigned int i=start; i<(start + batch_size); i++) {
-        this->back_propagation(trainingset->get_input_vector(i), trainingset->get_output_vector(i));
-        this->copy_nablas(nabla_b_sum, nabla_w_sum);
-    }
-
-    this->correct_network(nabla_b_sum, nabla_w_sum, batch_size, eta);
-}
-
-double NeuralNetwork::sigmoid(double z) {
-    return 1.0 / (1.0 + std::exp(-z));
-}
-
-double NeuralNetwork::sigmoid_prime(double z) {
-    return this->sigmoid(z) * (1.0 - this->sigmoid(z));
-}
-
-void NeuralNetwork::copy_nablas(std::vector<std::vector<double> >& nabla_b_sum, std::vector<std::vector<double> >& nabla_w_sum) {
-    for(unsigned int i=0; i<nabla_b_sum.size(); i++) {
-        #pragma omp parallel for
-        for(unsigned int j=0; j<nabla_b_sum[i].size(); j++) {
-            nabla_b_sum[i][j] += nabla_b[i][j];
+    // store biases
+    for(unsigned int i=0; i<this->biases.size(); i++) {
+        for(unsigned int j=0; j<this->biases[i].size(); j++) {
+            out.write((char*)&this->biases[i][j], sizeof(double));
         }
     }
 
-    for(unsigned int i=0; i<nabla_w_sum.size(); i++) {
-        #pragma omp parallel for
-        for(unsigned int j=0; j<nabla_w_sum[i].size(); j++) {
-            nabla_w_sum[i][j] += nabla_w[i][j];
+    // store weights
+    for(unsigned int i=0; i<this->weights.size(); i++) {
+        for(unsigned int j=0; j<this->weights[i].size(); j++) {
+            out.write((char*)&this->weights[i][j], sizeof(double));
         }
     }
+
+    out.close();
 }
 
-void NeuralNetwork::correct_network(const std::vector<std::vector<double> >& nabla_b_sum, const std::vector<std::vector<double> >& nabla_w_sum, unsigned int batch_size, double eta) {
-    const double factor = eta / (double)batch_size;
+/**
+ * @brief      load network from filename
+ *
+ * @param[in]  filename  The filename
+ */
+void NeuralNetwork::load_network(const std::string& filename) {
+    // open file
+    std::ifstream in(filename, std::ios::in | std::ios::binary);
 
-    for(unsigned int i=0; i<nabla_b_sum.size(); i++) {
-        #pragma omp parallel for
-        for(unsigned int j=0; j<nabla_b_sum[i].size(); j++) {
-            this->biases[i][j] -= factor * nabla_b_sum[i][j];
+    // store sizes
+    in.read((char*)&this->num_layers, sizeof(uint32_t));
+    this->sizes.resize(num_layers);
+    for(unsigned int i=0; i<this->sizes.size(); i++) {
+        in.read((char*)&this->sizes[i], sizeof(uint32_t));
+    }
+
+    // store biases
+    this->biases.resize(this->num_layers - 1);
+    for(unsigned int i=0; i<this->biases.size(); i++) {
+        this->biases[i].resize(this->sizes[i+1]);
+        for(unsigned int j=0; j<this->biases[i].size(); j++) {
+            in.read((char*)&this->biases[i][j], sizeof(double));
         }
     }
 
-    for(unsigned int i=0; i<nabla_w_sum.size(); i++) {
-        #pragma omp parallel for
-        for(unsigned int j=0; j<nabla_w_sum[i].size(); j++) {
-            this->weights[i][j] -= factor * nabla_w_sum[i][j];
+    // store weights
+    this->weights.resize(this->num_layers - 1);
+    for(unsigned int i=0; i<this->weights.size(); i++) {
+        this->weights[i].resize(this->sizes[i] * this->sizes[i+1]);
+        for(unsigned int j=0; j<this->weights[i].size(); j++) {
+            in.read((char*)&this->weights[i][j], sizeof(double));
         }
     }
+
+    in.close();
 }
 
+/**
+ * @brief      evaluate performance of network
+ *
+ * @param[in]  testset  testset
+ *
+ * @return     number of successful recognitions
+ */
 unsigned int NeuralNetwork::evaluate(const std::shared_ptr<Dataset>& testset) {
     unsigned int hits = 0;
 
@@ -293,4 +310,153 @@ unsigned int NeuralNetwork::evaluate(const std::shared_ptr<Dataset>& testset) {
     }
 
     return hits;
+}
+
+
+/**
+ * @brief      construct bias and weight vectors
+ */
+void NeuralNetwork::construct_bias_and_weight_vectors() {
+    // construct random number generator
+    std::uniform_real_distribution<double> unif(-1.0, 1.0);
+    std::default_random_engine re;
+    re.seed(std::chrono::system_clock::now().time_since_epoch().count());
+
+    // construct bias vectors
+    for(unsigned int i=1; i<this->sizes.size(); i++) {
+        this->biases.emplace_back(this->sizes[i]);
+        for(unsigned int j=0; j<this->sizes[i]; j++) {
+            this->biases.back()[j] = unif(re);
+        }
+    }
+
+    // construct weight matrices
+    for(unsigned int i=1; i<this->sizes.size(); i++) {
+        this->weights.emplace_back(this->sizes[i-1] * this->sizes[i], 0.0);
+        for(unsigned int j=0; j<this->weights.back().size(); j++) {
+            this->weights.back()[j] = unif(re);
+        }
+    }
+}
+
+/**
+ * @brief      construct activation vectors
+ */
+void NeuralNetwork::construct_activation_vectors() {
+    // construct activations vectors
+    for(unsigned int i=0; i<this->sizes.size(); i++) {
+        this->activations.emplace_back(this->sizes[i]);
+    }
+
+    // construct z vectors
+    for(unsigned int i=1; i<this->sizes.size(); i++) {
+        this->z.emplace_back(this->sizes[i]);
+    }
+
+    // construct bias vectors
+    for(unsigned int i=1; i<this->sizes.size(); i++) {
+        this->nabla_b.emplace_back(this->sizes[i]);
+    }
+
+    // construct weight matrices
+    for(unsigned int i=1; i<this->sizes.size(); i++) {
+        this->nabla_w.emplace_back(this->sizes[i-1] * this->sizes[i], 0.0);
+    }
+}
+
+/**
+ * @brief      sigmoid function
+ *
+ * @param[in]  z     input value
+ *
+ * @return     sigmoid value
+ */
+double NeuralNetwork::sigmoid(double z) {
+    return 1.0 / (1.0 + std::exp(-z));
+}
+
+/**
+ * @brief      derivative of sigmoid function
+ *
+ * @param[in]  z     input value
+ *
+ * @return     sigmoid derivative value
+ */
+double NeuralNetwork::sigmoid_prime(double z) {
+    return this->sigmoid(z) * (1.0 - this->sigmoid(z));
+}
+
+/**
+ * @brief      update network based on mini batch
+ *
+ * @param[in]  trainingset  pointer to training set
+ * @param[in]  batches      pointer to mini batches
+ * @param[in]  start        starting index
+ * @param[in]  batch_size   batch size
+ * @param[in]  eta          learning rate
+ */
+void NeuralNetwork::update_mini_batch(const std::shared_ptr<Dataset>& trainingset, const std::vector<unsigned int>& batches, unsigned int start, unsigned int batch_size, double eta) {
+    std::vector<std::vector<double>> nabla_b_sum;
+    std::vector<std::vector<double>> nabla_w_sum;
+
+    // construct bias vectors
+    for(unsigned int i=1; i<this->sizes.size(); i++) {
+        nabla_b_sum.emplace_back(this->sizes[i], 0.0);
+        nabla_w_sum.emplace_back(this->sizes[i-1] * this->sizes[i], 0.0);
+    }
+
+    for(unsigned int i=start; i<(start + batch_size); i++) {
+        this->back_propagation(trainingset->get_input_vector(i), trainingset->get_output_vector(i));
+        this->copy_nablas(nabla_b_sum, nabla_w_sum);
+    }
+
+    this->correct_network(nabla_b_sum, nabla_w_sum, batch_size, eta);
+}
+
+/**
+ * @brief      copy nablas
+ *
+ * @param      nabla_b_sum  The nabla b sum
+ * @param      nabla_w_sum  The nabla w sum
+ */
+void NeuralNetwork::copy_nablas(std::vector<std::vector<double> >& nabla_b_sum, std::vector<std::vector<double> >& nabla_w_sum) {
+    for(unsigned int i=0; i<nabla_b_sum.size(); i++) {
+        #pragma omp parallel for
+        for(unsigned int j=0; j<nabla_b_sum[i].size(); j++) {
+            nabla_b_sum[i][j] += nabla_b[i][j];
+        }
+    }
+
+    for(unsigned int i=0; i<nabla_w_sum.size(); i++) {
+        #pragma omp parallel for
+        for(unsigned int j=0; j<nabla_w_sum[i].size(); j++) {
+            nabla_w_sum[i][j] += nabla_w[i][j];
+        }
+    }
+}
+
+/**
+ * @brief      correct network using nabla sums
+ *
+ * @param[in]  nabla_b_sum  nabla b sum
+ * @param[in]  nabla_w_sum  nabla w sum
+ * @param[in]  batch_size   batch size
+ * @param[in]  eta          learning rate
+ */
+void NeuralNetwork::correct_network(const std::vector<std::vector<double> >& nabla_b_sum, const std::vector<std::vector<double> >& nabla_w_sum, unsigned int batch_size, double eta) {
+    const double factor = eta / (double)batch_size;
+
+    for(unsigned int i=0; i<nabla_b_sum.size(); i++) {
+        #pragma omp parallel for
+        for(unsigned int j=0; j<nabla_b_sum[i].size(); j++) {
+            this->biases[i][j] -= factor * nabla_b_sum[i][j];
+        }
+    }
+
+    for(unsigned int i=0; i<nabla_w_sum.size(); i++) {
+        #pragma omp parallel for
+        for(unsigned int j=0; j<nabla_w_sum[i].size(); j++) {
+            this->weights[i][j] -= factor * nabla_w_sum[i][j];
+        }
+    }
 }
