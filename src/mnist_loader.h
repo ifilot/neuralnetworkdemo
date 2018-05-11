@@ -39,6 +39,9 @@
 #include "pngfuncs.h"
 #include "dataset.h"
 
+/**
+ * @brief      Loads MNIST database
+ */
 class MNISTLoader {
 private:
     size_t trainingset_size;

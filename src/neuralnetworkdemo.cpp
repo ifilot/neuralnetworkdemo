@@ -103,10 +103,14 @@ int main(int argc, char* argv[]) {
             std::cout << "--------------------------------------------------------------" << std::endl;
         } else {
             /*
-             * Read sample image
+             * Read sample image and predict number
              */
             if(input_filename.empty()) {
                 throw std::runtime_error("You need to specify an input file for the network");
+            }
+
+            if(image_filename.empty()) {
+                throw std::runtime_error("You need to specify an image file");
             }
 
             // load neural network from file
